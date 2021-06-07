@@ -17,18 +17,18 @@ type Car struct {
 	ID     string `json:"ID"`
 	Make   string `json:"make"`
 	Model  string `json:"model"`
-	Colour string `json:"colour"`
+	Count  int    `json:"count"`
 	Owner  string `json:"owner"`
 }
 
 // InitLedger adds a base set of cars to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
 	cars := []Car{
-		Car{ID: "CAR0", Make: "Toyota", Model: "Prius", Colour: "blue", Owner: "Tomoko"},
-		Car{ID: "CAR1", Make: "Ford", Model: "Mustang", Colour: "red", Owner: "Brad"},
-		Car{ID: "CAR2", Make: "Hyundai", Model: "Tucson", Colour: "green", Owner: "Jin Soo"},
-		Car{ID: "CAR3", Make: "Volkswagen", Model: "Passat", Colour: "yellow", Owner: "Max"},
-		Car{ID: "CAR4", Make: "Tesla", Model: "S", Colour: "black", Owner: "Adriana"},
+		Car{ID: "CAR0", Make: "Toyota", Model: "Prius", Count: 10, Owner: "Tomoko"},
+		Car{ID: "CAR1", Make: "Ford", Model: "Mustang", Count: 200, Owner: "Brad"},
+		Car{ID: "CAR2", Make: "Hyundai", Model: "Tucson", Count: 320, Owner: "Jin Soo"},
+		Car{ID: "CAR3", Make: "Volkswagen", Model: "Passat", Count: 25, Owner: "Max"},
+		Car{ID: "CAR4", Make: "Tesla", Model: "S", Count: 15, Owner: "Adriana"},
 	}
 
 	for _, car := range cars {
@@ -124,7 +124,7 @@ func (s *SmartContract) QueryAllCars(ctx contractapi.TransactionContextInterface
 }
 
 // AddCar issues a new car to the world state with given details.
-func (s *SmartContract) AddCar(ctx contractapi.TransactionContextInterface, id string, make string, model string, colour string, owner string) error {
+func (s *SmartContract) AddCar(ctx contractapi.TransactionContextInterface, id string, make string, model string, count int, owner string) error {
 	exists, err := s.CarExists(ctx, id)
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func (s *SmartContract) AddCar(ctx contractapi.TransactionContextInterface, id s
 		ID:     id,
 		Make:   make,
 		Model:  model,
-		Colour: colour,
+		Count: count,
 		Owner:  owner,
 	}
 	carJSON, err := json.Marshal(car)
@@ -217,4 +217,48 @@ func (s *SmartContract) DeleteCar(ctx contractapi.TransactionContextInterface, i
 	}
 
 	return ctx.GetStub().DelState(id)
+}
+
+//pushCar 
+func (s *SmartContract) PushCar(ctx contractapi.TransactionContextInterface, id string, count int) error {
+	car, err := s.QueryCar(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if count <= 0 {
+		return fmt.Errorf("Non positive count. %v < %v", car.Count, count)
+  }
+
+	car.Count += count
+	carJSON, err := json.Marshal(car)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(id, carJSON)
+}
+
+//popCar
+func (s *SmartContract) PopCar(ctx contractapi.TransactionContextInterface, id string, count int) error {
+	car, err := s.QueryCar(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if count <= 0 {
+		return fmt.Errorf("Non positive count. %v < %v", car.Count, count)
+  }
+
+	if car.Count < count {
+		return fmt.Errorf("Not enough count. %v < %v", car.Count, count)
+  }
+
+	car.Count -= count
+	carJSON, err := json.Marshal(car)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(id, carJSON)
 }

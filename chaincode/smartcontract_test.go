@@ -26,11 +26,11 @@ func TestAddCar(t *testing.T) {
 	transactionContext.GetStubReturns(chaincodeStub)
 
 	assetTransfer := chaincode.SmartContract{}
-	err := assetTransfer.AddCar(transactionContext, "CAR0", "KIA", "EV6", "purple", "sanggi")
+	err := assetTransfer.AddCar(transactionContext, "CAR0", "KIA", "EV6", 1, "sanggi")
 	require.NoError(t, err)
 
 	chaincodeStub.PutStateReturns(fmt.Errorf("CAR0"))
-	err = assetTransfer.AddCar(transactionContext, "CAR0", "KIA", "EV6", "purple", "sanggi")
+	err = assetTransfer.AddCar(transactionContext, "CAR0", "KIA", "EV6", 3, "sanggi")
 	require.EqualError(t, err, "Failed to put to world state. CAR0")
 }
 
