@@ -20,17 +20,17 @@ type chaincodeStub interface {
 	shim.ChaincodeStubInterface
 }
 
-func TestAddCar(t *testing.T) {
+func TestAddStock(t *testing.T) {
 	chaincodeStub := &mocks.ChaincodeStub{}
 	transactionContext := &mocks.TransactionContext{}
 	transactionContext.GetStubReturns(chaincodeStub)
 
 	assetTransfer := chaincode.SmartContract{}
-	err := assetTransfer.AddCar(transactionContext, "CAR0", "KIA", "EV6", 1, "sanggi")
+	err := assetTransfer.AddStock(transactionContext, "CAR0", "KIA", "EV6", 1, "sanggi")
 	require.NoError(t, err)
 
 	chaincodeStub.PutStateReturns(fmt.Errorf("CAR0"))
-	err = assetTransfer.AddCar(transactionContext, "CAR0", "KIA", "EV6", 3, "sanggi")
+	err = assetTransfer.AddStock(transactionContext, "CAR0", "KIA", "EV6", 3, "sanggi")
 	require.EqualError(t, err, "Failed to put to world state. CAR0")
 }
 
@@ -39,14 +39,14 @@ func TestQuerycar(t *testing.T) {
 	transactionContext := &mocks.TransactionContext{}
 	transactionContext.GetStubReturns(chaincodeStub)
 
-	expectedAsset := &chaincode.Car{ID: "Car1"}
-	// expectedAsset1 := &chaincode.Car{ID: "Car2"}
+	expectedAsset := &chaincode.Stock{ID: "Stock1"}
+	// expectedAsset1 := &chaincode.Stock{ID: "Stock2"}
 	bytes, err := json.Marshal(expectedAsset)
 	require.NoError(t, err)
 
 	chaincodeStub.GetStateReturns(bytes, nil)
 	assetTransfer := chaincode.SmartContract{}
-	asset, err := assetTransfer.QueryCar(transactionContext, "")
+	asset, err := assetTransfer.QueryStock(transactionContext, "")
 	require.NoError(t, err)
 	fmt.Print(expectedAsset)
 	fmt.Print(asset)
