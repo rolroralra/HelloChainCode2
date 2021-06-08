@@ -3,41 +3,50 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
-// SmartContract provides functions for managing a Stock
+// SmartContract provides functions for managing a Model
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// Stock describes basic details of what makes up a simple stock
-type Stock struct {
+// Model (재고관리-- 모델 기준)
+type Model struct {
 	ID    string `json:"ID"`
-	Make  string `json:"make"`
-	Model string `json:"model"`
+	Name  string `json:"name"`
 	Count int    `json:"count"`
-	Owner string `json:"owner"`
 }
 
-// InitLedger adds a base set of stocks to the ledger
+// Product (Seq = 0 : MetaData, Seq >= 1 : Product History)
+type Product struct {
+	ID          string    `json:"ID"`
+	Seq         int       `json:"seq"`
+	ModelID     string    `json:"modelID"`
+	Status      int       `json:"status"`
+	UpdateAt    time.Time `json:"updateAt"`
+	Description int       `json:"description"`
+}
+
+// InitLedger adds a base set of models to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	stocks := []Stock{
-		Stock{ID: "CAR0", Make: "Toyota", Model: "Prius", Count: 10, Owner: "Tomoko"},
-		Stock{ID: "CAR1", Make: "Ford", Model: "Mustang", Count: 200, Owner: "Brad"},
-		Stock{ID: "CAR2", Make: "Hyundai", Model: "Tucson", Count: 320, Owner: "Jin Soo"},
-		Stock{ID: "CAR3", Make: "Volkswagen", Model: "Passat", Count: 25, Owner: "Max"},
-		Stock{ID: "CAR4", Make: "Tesla", Model: "S", Count: 15, Owner: "Adriana"},
+	models := []Model{
+		{ID: "MODEL-00001", Name: "GalaxyS10", Count: 10},
+		{ID: "MODEL-00002", Name: "GalaxyS11", Count: 20},
+		{ID: "MODEL-00003", Name: "GalaxyS20", Count: 1000},
+		{ID: "MODEL-00004", Name: "GalaxyS21", Count: 2000},
+		{ID: "MODEL-00005", Name: "GalaxyS22", Count: 0},
 	}
 
-	for _, stock := range stocks {
-		stockJSON, err := json.Marshal(stock)
+	for _, model := range models {
+		modelJSON, err := json.Marshal(model)
 		if err != nil {
 			return err
 		}
 
-		err = ctx.GetStub().PutState(stock.ID, stockJSON)
+		err = ctx.GetStub().PutState(model.ID, modelJSON)
 		if err != nil {
 			return fmt.Errorf("Failed to put to world state. %v", err)
 		}
@@ -47,138 +56,136 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 
 }
 
-// QueryStock returns the stock stored in the world state with given id.
-func (s *SmartContract) QueryStock(ctx contractapi.TransactionContextInterface, id string) (*Stock, error) {
-	stockJSON, err := ctx.GetStub().GetState(id)
+// QueryModel returns the model stored in the world state with given id.
+func (s *SmartContract) QueryModel(ctx contractapi.TransactionContextInterface, id string) (*Model, error) {
+	modelJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read from world state: %v", err)
 	}
-	if stockJSON == nil {
-		return nil, fmt.Errorf("The stock %s does not exist", id)
+	if modelJSON == nil {
+		return nil, fmt.Errorf("The model %s does not exist", id)
 	}
 
-	var stock Stock
-	err = json.Unmarshal(stockJSON, &stock)
+	var model Model
+	err = json.Unmarshal(modelJSON, &model)
 	if err != nil {
 		return nil, err
 	}
 
-	return &stock, nil
+	return &model, nil
 }
 
-// In CouchDB,QueryStock returns the stock stored in the world state with given id.
-func (s *SmartContract) QueryStockCouchDB(ctx contractapi.TransactionContextInterface, query string) ([]*Stock, error) {
+// In CouchDB,QueryModel returns the model stored in the world state with given id.
+func (s *SmartContract) QueryModelCouchDB(ctx contractapi.TransactionContextInterface, query string) ([]*Model, error) {
 	resultsIterator, err := ctx.GetStub().GetQueryResult(query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read from world state: %v", err)
 	}
 	if resultsIterator == nil {
-		return nil, fmt.Errorf("The stock does not exist")
+		return nil, fmt.Errorf("The model does not exist")
 	}
 
 	defer resultsIterator.Close()
 
-	var stocks []*Stock
+	var models []*Model
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		var stock Stock
-		err = json.Unmarshal(queryResponse.Value, &stock)
+		var model Model
+		err = json.Unmarshal(queryResponse.Value, &model)
 		if err != nil {
 			return nil, err
 		}
-		stocks = append(stocks, &stock)
+		models = append(models, &model)
 	}
-	return stocks, nil
+	return models, nil
 }
 
-// QueryAllStocks returns all stocks found in world state
-func (s *SmartContract) QueryAllStocks(ctx contractapi.TransactionContextInterface) ([]*Stock, error) {
+// QueryAllModels returns all models found in world state
+func (s *SmartContract) QueryAllModels(ctx contractapi.TransactionContextInterface) ([]*Model, error) {
 	// range query with empty string for startKey and endKey does an
-	// open-ended query of all stocks in the chaincode namespace.
+	// open-ended query of all models in the chaincode namespace.
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
 	if err != nil {
 		return nil, err
 	}
 	defer resultsIterator.Close()
 
-	var stocks []*Stock
+	var models []*Model
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		var stock Stock
-		err = json.Unmarshal(queryResponse.Value, &stock)
+		var model Model
+		err = json.Unmarshal(queryResponse.Value, &model)
 		if err != nil {
 			return nil, err
 		}
-		stocks = append(stocks, &stock)
+		models = append(models, &model)
 	}
 
-	return stocks, nil
+	return models, nil
 }
 
-// AddStock issues a new stock to the world state with given details.
-func (s *SmartContract) AddStock(ctx contractapi.TransactionContextInterface, id string, make string, model string, count int, owner string) error {
-	exists, err := s.StockExists(ctx, id)
+// AddModel issues a new model to the world state with given details.
+func (s *SmartContract) AddModel(ctx contractapi.TransactionContextInterface, id string, name string, count int) error {
+	exists, err := s.ModelExists(ctx, id)
 	if err != nil {
 		return err
 	}
 	if exists {
-		return fmt.Errorf("The stock %s already exists", id)
+		return fmt.Errorf("The model %s already exists", id)
 	}
 
-	stock := Stock{
+	model := Model{
 		ID:    id,
-		Make:  make,
-		Model: model,
+		Name:  name,
 		Count: count,
-		Owner: owner,
 	}
-	stockJSON, err := json.Marshal(stock)
+	modelJSON, err := json.Marshal(model)
 	if err != nil {
 		return err
 	}
-	err = ctx.GetStub().PutState(id, stockJSON)
+	err = ctx.GetStub().PutState(id, modelJSON)
 	if err != nil {
 		return fmt.Errorf("Failed to put to world state. %v", err)
 	}
 	return nil
 }
 
-// ChangeOwner updates the owner field of stock with given id in world state.
+// ChangeOwner updates the owner field of model with given id in world state.
 func (s *SmartContract) ChangeOwner(ctx contractapi.TransactionContextInterface, id string, newOwner string) error {
-	stock, err := s.QueryStock(ctx, id)
+	model, err := s.QueryModel(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	stock.Owner = newOwner
-	stockJSON, err := json.Marshal(stock)
+	//model.Owner = newOwner
+	modelJSON, err := json.Marshal(model)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, stockJSON)
+	return ctx.GetStub().PutState(id, modelJSON)
 }
 
-// StockExists returns true when stock with given ID exists in world state
-func (s *SmartContract) StockExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	stockJSON, err := ctx.GetStub().GetState(id)
+// ModelExists returns true when model with given ID exists in world state
+func (s *SmartContract) ModelExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+	modelJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return false, fmt.Errorf("Failed to read from world state: %v", err)
 	}
 
-	return stockJSON != nil, nil
+	return modelJSON != nil, nil
 }
 
-// queryHistoryStocks
-func (s *SmartContract) QueryHistoryStocks(ctx contractapi.TransactionContextInterface, id string) ([]*Stock, error) {
+// queryHistoryModels
+func (s *SmartContract) QueryHistoryModels(ctx contractapi.TransactionContextInterface, id string) ([]*Model, error) {
 
 	historyIer, error := ctx.GetStub().GetHistoryForKey(id)
 
@@ -186,32 +193,32 @@ func (s *SmartContract) QueryHistoryStocks(ctx contractapi.TransactionContextInt
 		return nil, error
 	}
 
-	var stocks []*Stock
+	var models []*Model
 	for historyIer.HasNext() {
 		queryResponse, err := historyIer.Next()
-		var stock Stock
+		var model Model
 		if err != nil {
 			return nil, err
 		}
 		if queryResponse.IsDelete {
 			continue
 		} else {
-			err = json.Unmarshal(queryResponse.Value, &stock)
+			err = json.Unmarshal(queryResponse.Value, &model)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		stocks = append(stocks, &stock)
+		models = append(models, &model)
 	}
 
-	return stocks, nil
+	return models, nil
 }
 
-// deleteStock
-func (s *SmartContract) DeleteStock(ctx contractapi.TransactionContextInterface, id string) error {
+// deleteModel
+func (s *SmartContract) DeleteModel(ctx contractapi.TransactionContextInterface, id string) error {
 
-	_, err := s.QueryStock(ctx, id)
+	_, err := s.QueryModel(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -219,46 +226,46 @@ func (s *SmartContract) DeleteStock(ctx contractapi.TransactionContextInterface,
 	return ctx.GetStub().DelState(id)
 }
 
-//pushStock
-func (s *SmartContract) PushStock(ctx contractapi.TransactionContextInterface, id string, count int) error {
-	stock, err := s.QueryStock(ctx, id)
+//pushModel
+func (s *SmartContract) PushModel(ctx contractapi.TransactionContextInterface, id string, count int) error {
+	model, err := s.QueryModel(ctx, id)
 	if err != nil {
 		return err
 	}
 
 	if count <= 0 {
-		return fmt.Errorf("Non positive count. %v < %v", stock.Count, count)
+		return fmt.Errorf("Non positive count. %v < %v", model.Count, count)
 	}
 
-	stock.Count += count
-	stockJSON, err := json.Marshal(stock)
+	model.Count += count
+	modelJSON, err := json.Marshal(model)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, stockJSON)
+	return ctx.GetStub().PutState(id, modelJSON)
 }
 
-//popStock
-func (s *SmartContract) PopStock(ctx contractapi.TransactionContextInterface, id string, count int) error {
-	stock, err := s.QueryStock(ctx, id)
+//popModel
+func (s *SmartContract) PopModel(ctx contractapi.TransactionContextInterface, id string, count int) error {
+	model, err := s.QueryModel(ctx, id)
 	if err != nil {
 		return err
 	}
 
 	if count <= 0 {
-		return fmt.Errorf("Non positive count. %v < %v", stock.Count, count)
+		return fmt.Errorf("Non positive count. %v < %v", model.Count, count)
 	}
 
-	if stock.Count < count {
-		return fmt.Errorf("Not enough count. %v < %v", stock.Count, count)
+	if model.Count < count {
+		return fmt.Errorf("Not enough count. %v < %v", model.Count, count)
 	}
 
-	stock.Count -= count
-	stockJSON, err := json.Marshal(stock)
+	model.Count -= count
+	modelJSON, err := json.Marshal(model)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, stockJSON)
+	return ctx.GetStub().PutState(id, modelJSON)
 }
