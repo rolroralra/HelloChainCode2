@@ -3,50 +3,45 @@ package chaincode
 import (
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
-// SmartContract provides functions for managing a Model
+// SmartContract provides functions for managing a Product
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// Model (재고관리-- 모델 기준)
-type Model struct {
-	ID    string `json:"ID"`
-	Name  string `json:"name"`
-	Count int    `json:"count"`
-}
-
-// Product (Seq = 0 : MetaData, Seq >= 1 : Product History)
 type Product struct {
 	ID          string    `json:"ID"`
-	Seq         int       `json:"seq"`
+	//ProductID   string    `json:"productID"`
+	//Seq         int       `json:"seq"`
 	ModelID     string    `json:"modelID"`
+	ModelName   string    `json:"modelName"`
+	Make        string    `json:"make"`
 	Status      int       `json:"status"`
-	UpdateAt    time.Time `json:"updateAt"`
-	Description int       `json:"description"`
+	UpdatedAt   string `json:"updatedAt"`
+	Description string       `json:"description"`
 }
 
-// InitLedger adds a base set of models to the ledger
+// InitLedger adds a base set of products to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	models := []Model{
-		{ID: "MODEL-00001", Name: "GalaxyS10", Count: 10},
-		{ID: "MODEL-00002", Name: "GalaxyS11", Count: 20},
-		{ID: "MODEL-00003", Name: "GalaxyS20", Count: 1000},
-		{ID: "MODEL-00004", Name: "GalaxyS21", Count: 2000},
-		{ID: "MODEL-00005", Name: "GalaxyS22", Count: 0},
+	products := []Product{
+		{ID: "PRODUCT-00001", ModelID: "MODEL-00001", ModelName: "GalaxyS7", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00002", ModelID: "MODEL-00002", ModelName: "GalaxyS9", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00003", ModelID: "MODEL-00003", ModelName: "GalaxyS10", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00004", ModelID: "MODEL-00004", ModelName: "GalaxyS11", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00005", ModelID: "MODEL-00005", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00006", ModelID: "MODEL-00006", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00007", ModelID: "MODEL-00007", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
 	}
 
-	for _, model := range models {
-		modelJSON, err := json.Marshal(model)
+	for _, product := range products {
+		productJSON, err := json.Marshal(product)
 		if err != nil {
 			return err
 		}
 
-		err = ctx.GetStub().PutState(model.ID, modelJSON)
+		err = ctx.GetStub().PutState(product.ID, productJSON)
 		if err != nil {
 			return fmt.Errorf("Failed to put to world state. %v", err)
 		}
@@ -56,136 +51,136 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 
 }
 
-// QueryModel returns the model stored in the world state with given id.
-func (s *SmartContract) QueryModel(ctx contractapi.TransactionContextInterface, id string) (*Model, error) {
-	modelJSON, err := ctx.GetStub().GetState(id)
+// QueryProduct returns the product stored in the world state with given id.
+func (s *SmartContract) QueryProduct(ctx contractapi.TransactionContextInterface, id string) (*Product, error) {
+	productJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read from world state: %v", err)
 	}
-	if modelJSON == nil {
-		return nil, fmt.Errorf("The model %s does not exist", id)
+	if productJSON == nil {
+		return nil, fmt.Errorf("The product %s does not exist", id)
 	}
 
-	var model Model
-	err = json.Unmarshal(modelJSON, &model)
+	var product Product
+	err = json.Unmarshal(productJSON, &product)
 	if err != nil {
 		return nil, err
 	}
 
-	return &model, nil
+	return &product, nil
 }
 
-// In CouchDB,QueryModel returns the model stored in the world state with given id.
-func (s *SmartContract) QueryModelCouchDB(ctx contractapi.TransactionContextInterface, query string) ([]*Model, error) {
+// In CouchDB,QueryProduct returns the product stored in the world state with given id.
+func (s *SmartContract) QueryProductCouchDB(ctx contractapi.TransactionContextInterface, query string) ([]*Product, error) {
 	resultsIterator, err := ctx.GetStub().GetQueryResult(query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read from world state: %v", err)
 	}
 	if resultsIterator == nil {
-		return nil, fmt.Errorf("The model does not exist")
+		return nil, fmt.Errorf("The product does not exist")
 	}
 
 	defer resultsIterator.Close()
 
-	var models []*Model
+	var products []*Product
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		var model Model
-		err = json.Unmarshal(queryResponse.Value, &model)
+		var product Product
+		err = json.Unmarshal(queryResponse.Value, &product)
 		if err != nil {
 			return nil, err
 		}
-		models = append(models, &model)
+		products = append(products, &product)
 	}
-	return models, nil
+	return products, nil
 }
 
-// QueryAllModels returns all models found in world state
-func (s *SmartContract) QueryAllModels(ctx contractapi.TransactionContextInterface) ([]*Model, error) {
+// QueryAllProducts returns all products found in world state
+func (s *SmartContract) QueryAllProducts(ctx contractapi.TransactionContextInterface) ([]*Product, error) {
 	// range query with empty string for startKey and endKey does an
-	// open-ended query of all models in the chaincode namespace.
+	// open-ended query of all products in the chaincode namespace.
 	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
 	if err != nil {
 		return nil, err
 	}
 	defer resultsIterator.Close()
 
-	var models []*Model
+	var products []*Product
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		var model Model
-		err = json.Unmarshal(queryResponse.Value, &model)
+		var product Product
+		err = json.Unmarshal(queryResponse.Value, &product)
 		if err != nil {
 			return nil, err
 		}
-		models = append(models, &model)
+		products = append(products, &product)
 	}
 
-	return models, nil
+	return products, nil
 }
 
-// AddModel issues a new model to the world state with given details.
-func (s *SmartContract) AddModel(ctx contractapi.TransactionContextInterface, id string, name string, count int) error {
-	exists, err := s.ModelExists(ctx, id)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return fmt.Errorf("The model %s already exists", id)
-	}
+// AddProduct issues a new product to the world state with given details.
+//func (s *SmartContract) AddProduct(ctx contractapi.TransactionContextInterface, id string, name string, count int) error {
+//	exists, err := s.ProductExists(ctx, id)
+//	if err != nil {
+//		return err
+//	}
+//	if exists {
+//		return fmt.Errorf("The product %s already exists", id)
+//	}
+//
+//	product := Product{
+//		ID:    id,
+//		Name:  name,
+//		Count: count,
+//	}
+//	productJSON, err := json.Marshal(product)
+//	if err != nil {
+//		return err
+//	}
+//	err = ctx.GetStub().PutState(id, productJSON)
+//	if err != nil {
+//		return fmt.Errorf("Failed to put to world state. %v", err)
+//	}
+//	return nil
+//}
 
-	model := Model{
-		ID:    id,
-		Name:  name,
-		Count: count,
-	}
-	modelJSON, err := json.Marshal(model)
-	if err != nil {
-		return err
-	}
-	err = ctx.GetStub().PutState(id, modelJSON)
-	if err != nil {
-		return fmt.Errorf("Failed to put to world state. %v", err)
-	}
-	return nil
-}
-
-// ChangeOwner updates the owner field of model with given id in world state.
+// ChangeOwner updates the owner field of product with given id in world state.
 func (s *SmartContract) ChangeOwner(ctx contractapi.TransactionContextInterface, id string, newOwner string) error {
-	model, err := s.QueryModel(ctx, id)
+	product, err := s.QueryProduct(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	//model.Owner = newOwner
-	modelJSON, err := json.Marshal(model)
+	//product.Owner = newOwner
+	productJSON, err := json.Marshal(product)
 	if err != nil {
 		return err
 	}
 
-	return ctx.GetStub().PutState(id, modelJSON)
+	return ctx.GetStub().PutState(id, productJSON)
 }
 
-// ModelExists returns true when model with given ID exists in world state
-func (s *SmartContract) ModelExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	modelJSON, err := ctx.GetStub().GetState(id)
+// ProductExists returns true when product with given ID exists in world state
+func (s *SmartContract) ProductExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+	productJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return false, fmt.Errorf("Failed to read from world state: %v", err)
 	}
 
-	return modelJSON != nil, nil
+	return productJSON != nil, nil
 }
 
-// queryHistoryModels
-func (s *SmartContract) QueryHistoryModels(ctx contractapi.TransactionContextInterface, id string) ([]*Model, error) {
+// queryHistoryProducts
+func (s *SmartContract) QueryHistoryProducts(ctx contractapi.TransactionContextInterface, id string) ([]*Product, error) {
 
 	historyIer, error := ctx.GetStub().GetHistoryForKey(id)
 
@@ -193,79 +188,35 @@ func (s *SmartContract) QueryHistoryModels(ctx contractapi.TransactionContextInt
 		return nil, error
 	}
 
-	var models []*Model
+	var products []*Product
 	for historyIer.HasNext() {
 		queryResponse, err := historyIer.Next()
-		var model Model
+		var product Product
 		if err != nil {
 			return nil, err
 		}
 		if queryResponse.IsDelete {
 			continue
 		} else {
-			err = json.Unmarshal(queryResponse.Value, &model)
+			err = json.Unmarshal(queryResponse.Value, &product)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		models = append(models, &model)
+		products = append(products, &product)
 	}
 
-	return models, nil
+	return products, nil
 }
 
-// deleteModel
-func (s *SmartContract) DeleteModel(ctx contractapi.TransactionContextInterface, id string) error {
+// deleteProduct
+func (s *SmartContract) DeleteProduct(ctx contractapi.TransactionContextInterface, id string) error {
 
-	_, err := s.QueryModel(ctx, id)
+	_, err := s.QueryProduct(ctx, id)
 	if err != nil {
 		return err
 	}
 
 	return ctx.GetStub().DelState(id)
-}
-
-//pushModel
-func (s *SmartContract) PushModel(ctx contractapi.TransactionContextInterface, id string, count int) error {
-	model, err := s.QueryModel(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if count <= 0 {
-		return fmt.Errorf("Non positive count. %v < %v", model.Count, count)
-	}
-
-	model.Count += count
-	modelJSON, err := json.Marshal(model)
-	if err != nil {
-		return err
-	}
-
-	return ctx.GetStub().PutState(id, modelJSON)
-}
-
-//popModel
-func (s *SmartContract) PopModel(ctx contractapi.TransactionContextInterface, id string, count int) error {
-	model, err := s.QueryModel(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if count <= 0 {
-		return fmt.Errorf("Non positive count. %v < %v", model.Count, count)
-	}
-
-	if model.Count < count {
-		return fmt.Errorf("Not enough count. %v < %v", model.Count, count)
-	}
-
-	model.Count -= count
-	modelJSON, err := json.Marshal(model)
-	if err != nil {
-		return err
-	}
-
-	return ctx.GetStub().PutState(id, modelJSON)
 }
