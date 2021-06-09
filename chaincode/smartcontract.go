@@ -156,21 +156,27 @@ func (s *SmartContract) AddProduct(ctx contractapi.TransactionContextInterface, 
 	return nil
 }
 
-// ChangeOwner updates the owner field of product with given id in world state.
-//func (s *SmartContract) ChangeOwner(ctx contractapi.TransactionContextInterface, id string, newOwner string) error {
-//	product, err := s.QueryProduct(ctx, id)
-//	if err != nil {
-//		return err
-//	}
-//
-//	//product.Owner = newOwner
-//	productJSON, err := json.Marshal(product)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return ctx.GetStub().PutState(id, productJSON)
-//}
+// UpdateProduct updates the requested field of product with given id in world state.
+func (s *SmartContract) UpdateProduct(ctx contractapi.TransactionContextInterface, id string, status int, updatedAt string) error {
+	product, err := s.QueryProduct(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(id)
+	fmt.Println(status)
+	fmt.Println(updatedAt)
+
+	product.Status = status
+	product.UpdatedAt = updatedAt
+
+	productJSON, err := json.Marshal(product)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(id, productJSON)
+}
 
 // ProductExists returns true when product with given ID exists in world state
 func (s *SmartContract) ProductExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
