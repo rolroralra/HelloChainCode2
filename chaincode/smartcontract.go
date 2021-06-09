@@ -157,18 +157,15 @@ func (s *SmartContract) AddProduct(ctx contractapi.TransactionContextInterface, 
 }
 
 // UpdateProduct updates the requested field of product with given id in world state.
-func (s *SmartContract) UpdateProduct(ctx contractapi.TransactionContextInterface, id string, status int, updatedAt string) error {
+func (s *SmartContract) UpdateProduct(ctx contractapi.TransactionContextInterface, id string, status int, updatedAt string, description string) error {
 	product, err := s.QueryProduct(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(id)
-	fmt.Println(status)
-	fmt.Println(updatedAt)
-
 	product.Status = status
 	product.UpdatedAt = updatedAt
+	product.Description = description
 
 	productJSON, err := json.Marshal(product)
 	if err != nil {
