@@ -13,8 +13,6 @@ type SmartContract struct {
 
 type Product struct {
 	ID          string    `json:"ID"`
-	//ProductID   string    `json:"productID"`
-	//Seq         int       `json:"seq"`
 	ModelID     string    `json:"modelID"`
 	ModelName   string    `json:"modelName"`
 	Make        string    `json:"make"`
@@ -26,13 +24,13 @@ type Product struct {
 // InitLedger adds a base set of products to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
 	products := []Product{
-		{ID: "PRODUCT-00001", ModelID: "MODEL-00001", ModelName: "GalaxyS7", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
-		{ID: "PRODUCT-00002", ModelID: "MODEL-00002", ModelName: "GalaxyS9", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
-		{ID: "PRODUCT-00003", ModelID: "MODEL-00003", ModelName: "GalaxyS10", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
-		{ID: "PRODUCT-00004", ModelID: "MODEL-00004", ModelName: "GalaxyS11", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
-		{ID: "PRODUCT-00005", ModelID: "MODEL-00005", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
-		{ID: "PRODUCT-00006", ModelID: "MODEL-00006", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
-		{ID: "PRODUCT-00007", ModelID: "MODEL-00007", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 0, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00001", ModelID: "MODEL-00001", ModelName: "GalaxyS7", Make: "SAMSUNG", Status: 1, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00002", ModelID: "MODEL-00002", ModelName: "GalaxyS9", Make: "SAMSUNG", Status: 1, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00003", ModelID: "MODEL-00003", ModelName: "GalaxyS10", Make: "SAMSUNG", Status: 1, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00004", ModelID: "MODEL-00004", ModelName: "GalaxyS11", Make: "SAMSUNG", Status: 1, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00005", ModelID: "MODEL-00005", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 1, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00006", ModelID: "MODEL-00006", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 1, UpdatedAt: "2020-06-08", Description: "등록"},
+		{ID: "PRODUCT-00007", ModelID: "MODEL-00007", ModelName: "GalaxyS20", Make: "SAMSUNG", Status: 1, UpdatedAt: "2020-06-08", Description: "등록"},
 	}
 
 	for _, product := range products {
@@ -128,46 +126,51 @@ func (s *SmartContract) QueryAllProducts(ctx contractapi.TransactionContextInter
 }
 
 // AddProduct issues a new product to the world state with given details.
-//func (s *SmartContract) AddProduct(ctx contractapi.TransactionContextInterface, id string, name string, count int) error {
-//	exists, err := s.ProductExists(ctx, id)
-//	if err != nil {
-//		return err
-//	}
-//	if exists {
-//		return fmt.Errorf("The product %s already exists", id)
-//	}
-//
-//	product := Product{
-//		ID:    id,
-//		Name:  name,
-//		Count: count,
-//	}
-//	productJSON, err := json.Marshal(product)
-//	if err != nil {
-//		return err
-//	}
-//	err = ctx.GetStub().PutState(id, productJSON)
-//	if err != nil {
-//		return fmt.Errorf("Failed to put to world state. %v", err)
-//	}
-//	return nil
-//}
-
-// ChangeOwner updates the owner field of product with given id in world state.
-func (s *SmartContract) ChangeOwner(ctx contractapi.TransactionContextInterface, id string, newOwner string) error {
-	product, err := s.QueryProduct(ctx, id)
+func (s *SmartContract) AddProduct(ctx contractapi.TransactionContextInterface, id string, modelID string, modelName string, make string, status int, updatedAt string, description string) error {
+	exists, err := s.ProductExists(ctx, id)
 	if err != nil {
 		return err
 	}
+	if exists {
+		return fmt.Errorf("The product %s already exists", id)
+	}
 
-	//product.Owner = newOwner
+	product := Product{
+		ID:    id,
+		ModelID:  modelID,
+		ModelName: modelName,
+		Make: make,
+		Status: status,
+		UpdatedAt: updatedAt,
+		Description: description,
+	}
+
 	productJSON, err := json.Marshal(product)
 	if err != nil {
 		return err
 	}
-
-	return ctx.GetStub().PutState(id, productJSON)
+	err = ctx.GetStub().PutState(id, productJSON)
+	if err != nil {
+		return fmt.Errorf("Failed to put to world state. %v", err)
+	}
+	return nil
 }
+
+// ChangeOwner updates the owner field of product with given id in world state.
+//func (s *SmartContract) ChangeOwner(ctx contractapi.TransactionContextInterface, id string, newOwner string) error {
+//	product, err := s.QueryProduct(ctx, id)
+//	if err != nil {
+//		return err
+//	}
+//
+//	//product.Owner = newOwner
+//	productJSON, err := json.Marshal(product)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return ctx.GetStub().PutState(id, productJSON)
+//}
 
 // ProductExists returns true when product with given ID exists in world state
 func (s *SmartContract) ProductExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
